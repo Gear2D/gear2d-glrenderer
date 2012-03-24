@@ -1,0 +1,46 @@
+project(gear2d)
+cmake_minimum_required(VERSION 2.6)
+
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}")
+
+find_package(Gear2D REQUIRED)
+
+set(COMPONENT_INSTALL_DIR lib/gear2d/component)
+
+
+
+include_directories(${Gear2D_INCLUDE_DIR} ${SDL_INCLUDE_DIR})
+link_directories(${Gear2D_LINK_DIR})
+
+add_subdirectory(glrenderer)
+
+if (WIN32)
+	add_subdirectory(thirdparty/win32)
+endif (WIN32)
+
+if (WIN32)
+	set(CPACK_SOURCE_GENERATOR ZIP)
+	set(CPACK_GENERATOR NSIS;ZIP)
+	set(CPACK_PACKAGE_NAME "Gear2D-${Gear2D_VERSION}-GLRenderer")
+elseif(UNIX)
+	set(CPACK_PACKAGE_NAME "gear2d-${Gear2D_VERSION}-glrenderer")
+	set(CPACK_SOURCE_GENERATOR TGZ)
+	set(CPACK_GENERATOR TGZ)
+endif()
+
+set(CPACK_PACKAGE_VENDOR "Gear2D Labs")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "gear2d")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Gear2D - OpenGL renderer for Gear2D")
+set(CPACK_PACKAGE_VERSION "0.9")
+
+set(CPACK_SOURCE_IGNORE_FILES "\\\\.git.*;${CMAKE_BINARY_DIR}/.*;.*~;\\\\.kdev4/.*;.*\\\\.kdev4;.*\\\\.swp")
+set(CPACK_RESOURCE_FILE_LICENSE ${CMAKE_SOURCE_DIR}/LICENSE)
+set(CPACK_RESOURCE_FILE_README ${CMAKE_SOURCE_DIR}/README)
+
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}")
+if(NOT WIN32)
+	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}.bin")
+endif(NOT WIN32)
+
+include(CPack)
