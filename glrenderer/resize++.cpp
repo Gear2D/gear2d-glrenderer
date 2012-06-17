@@ -247,6 +247,10 @@ SDL_Surface* SDL_Resize(SDL_Surface *src, int new_w, int new_h, bool free, int f
     #endif
 
     dst = SDL_CreateRGBSurface(0, new_w, new_h, 32, rmask, gmask, bmask, amask);
+    if (dst == 0) {
+      printf("Error resizing surface: %s\n", SDL_GetError());
+    }
+    
     SDL_Surface * temp = SDL_ConvertSurface(src,dst->format,0);
     if (free)
         SDL_FreeSurface(src);

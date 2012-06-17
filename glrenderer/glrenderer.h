@@ -76,6 +76,9 @@ class glrenderer : public component::base {
 		glimage * prepare(string id, texturedef & tex);
 		
 	private:
+		
+		string name;
+		
 		/* basic component initialization */
 		static void initialize(int w, int h, int bpp);
 		
@@ -126,7 +129,7 @@ class glrenderer : public component::base {
 		
 		static map<string, texturedef> rawbyfile;
 		
-		typedef set<glimage *, glimagecmp> renderset;
+		typedef multiset<glimage *, glimagecmp> renderset;
 		static renderset renderqueue;
 		
 		typedef set<gltext *> textrenderset;

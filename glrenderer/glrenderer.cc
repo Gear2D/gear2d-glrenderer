@@ -41,7 +41,6 @@ double glrenderer::viewright;
 double glrenderer::viewtop;
 double glrenderer::viewbottom;
 
-
 void glrenderer::initializegl(int w, int h) {
 	glewInit();
 
@@ -70,11 +69,12 @@ void glrenderer::initializegl(int w, int h) {
 
 	// background color
 	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glClearDepth(100);
+	
 
 	/* Depth buffer setup */
-	glClearDepth(1000.0);
 	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LEQUAL);
+	glDepthFunc(GL_LESS);
 // 	glDisable(GL_DEPTH_TEST);
 
 	// Perspective Calculations: GL_NICEST or GL_FASTEST  */
@@ -91,8 +91,7 @@ void glrenderer::initializegl(int w, int h) {
 // 	glFrontFace(GL_CCW);
 // 	glEnable(GL_CULL_FACE);
 
-	//glClearStencil(0);                          // clear stencil buffer
-	glClearDepth(1000.0f);                         // 0 is near, 1 is far
+	glClearStencil(0);                          // clear stencil buffer
 
 	// Lighting initialization
 	// Disable Lightning
@@ -127,10 +126,12 @@ glrenderer::glrenderer() {
 
 /* destroys the glimage, which decreases the count of texturedefs */
 glrenderer::~glrenderer() {
+	cout << "destruindo: " << this << " " << name << endl;
 	renderers.remove(this);
 	while (!surfacebyid.empty()) {
 		glimage * img = (surfacebyid.begin()->second);
-		renderqueue.erase(img);
+		cout << "\t imgID: " << img->id << endl;
+		cout << "\t deleted: " << renderqueue.erase(img);
 		surfacebyid.erase(surfacebyid.begin());
 		
 		delete img;
@@ -152,6 +153,7 @@ void glrenderer::setup(object::signature & sig) {
 	write("renderer.w", w);
 	write("renderer.h", h);
 	write("renderer.bpp", bpp);
+	name = sig["name"];
 	if (!initialized) initialize(w, h, bpp);
 	
 	write("imgpath", sig["imgpath"]);
@@ -212,6 +214,7 @@ void glrenderer::setup(object::signature & sig) {
 		
 		// pid was set by bind() of by surface() in worst case.
 		write(id + ".position.x", eval(sig[id + ".position.x"], 0.0f));
+        cout<< "xibiuuuuu" << read<float>(id + ".position.x") << endl;
 		write(id + ".position.y", eval(sig[id + ".position.y"], 0.0f));
 		write(id + ".position.z", eval(sig[id + ".position.z"], 0.0f));
 		write(id + ".position.w", eval(sig[id + ".position.w"], s->w));
@@ -251,7 +254,10 @@ void glrenderer::loadtexts(string textlist) {
 }
 
 
+
+
 texturedef & glrenderer::getraw(string path, bool reload = false) {
+	int error = 0;
 	if (rawbyfile.find(path) != rawbyfile.end()) return rawbyfile[path];
 	SDL_Surface * tmp = IMG_Load(path.c_str()), *resized = 0, *s = 0;
 	if (tmp == 0) {
@@ -268,7 +274,7 @@ texturedef & glrenderer::getraw(string path, bool reload = false) {
 	val = (val >> 16) | val;
 	val++;
 	
-	val = max(val, glrenderer::texturesize);
+	val = min(val, glrenderer::texturesize);
 	
 	
 	resized = SDL_Resize(tmp, val, val, false);
@@ -285,17 +291,23 @@ texturedef & glrenderer::getraw(string path, bool reload = false) {
 	
 	glGenTextures(1, &tex.id);
 	
+	
+	
 	// load images as 2d texture array
 	glBindTexture( GL_TEXTURE_2D, tex.id);
 
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // Use GL_LINEAR to turn on interpolation
+	
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); // Use GL_NEAREST to turn off interpolation
+	
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT);
 	glTexParameteri( GL_TEXTURE_2D, GL_GENERATE_MIPMAP_SGIS, GL_TRUE);
+	
 
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);      // 4-byte pixel alignment
+	
 	
 	glTexImage2D(GL_TEXTURE_2D, 0, 4, val, val, 0, GL_BGRA, GL_UNSIGNED_BYTE, s->pixels);
 	
@@ -342,6 +354,7 @@ void glrenderer::update(timediff dt) {
 	}
 }
 
+
 void glrenderer::populate() {
 	if (glvectorsize == 0) {
 		if (glvectorsize == 0) glvectorsize = renderers.size();
@@ -355,7 +368,8 @@ void glrenderer::populate() {
 	
 	int v = 0;
 	int t = 0;
-	for (renderset::iterator i = renderqueue.begin(); i != renderqueue.end(); i++) {
+    int meh = 0;
+	for (renderset::iterator i = renderqueue.begin(); i != renderqueue.end(); i++, meh++) {
 		glimage * img = *i;
 		
 		/* clock-wise */
@@ -370,7 +384,8 @@ void glrenderer::populate() {
 			z += img->parent->read<float>("z");
 		}
 		
-// 		printf("aaa %d %d %d %d\n", img->w, img->tex.realw, img->tex.w, img->tex.id);
+// 		z = z/2 + numeric_limits<float>::max()/2 + 1.0;
+        printf("aaa %d %d %d %d %d\n", meh, img->tex.id, renderqueue.size(), img->tex.realw, img->tex.w);
 		glvertices[v++] = x;
 		glvertices[v++] = -y;
 		glvertices[v++] = z;
@@ -411,15 +426,17 @@ void glrenderer::populate() {
 	}
 }
 
+		
 void glrenderer::render() {
+	int error = 0;
 	populate();
 	
 	// fuck.
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glOrtho(0, viewright*2, 0, viewtop*2, numeric_limits<float>::min(), numeric_limits<float>::max());
+	glOrtho(0, viewright*2, 0, viewtop*2, -20000, 20000);
 	glTranslatef(0, viewtop*2, 0);
 	for (textrenderset::iterator i = textqueue.begin(); i != textqueue.end(); ++i) {
 		(*i)->rendertext();
@@ -427,39 +444,40 @@ void glrenderer::render() {
 	
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glOrtho(viewleft, viewright, viewbottom, viewtop, numeric_limits<float>::min(), numeric_limits<float>::max());
+	glOrtho(viewleft, viewright, viewbottom, viewtop, -20000, 20000);
 	
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	
 	glTexCoordPointer(2, GL_FLOAT, 0, gltextures);
 	glVertexPointer(3, GL_FLOAT, 0, glvertices);
-	texturedef tex;
-	if (renderqueue.size() > 0) {
-		tex = (*renderqueue.begin())->tex;
-		int start = -4;
-		for (renderset::iterator i = renderqueue.begin(); i != renderqueue.end(); ++i) {
-			if (tex.id == (*i)->tex.id) { start += 4; continue; }
-			
-			/* new texture id */
-	// 		printf("casa do xapeu: %d\n", tex.id);
-			glBindTexture(GL_TEXTURE_2D, tex.id);
-			glDrawArrays(GL_QUADS, start, tex.count * 4);
-	// 		printf("%d\n", start);
-			start += 4;
+	
+
+	int start = 0;
+	for (renderset::iterator i = renderqueue.begin(); i != renderqueue.end(); /* pegadinha do malandro :D */) {
+// 		printf("cacete de agulha %d\n", start);
+		glimage * img = *i;
+		texturedef & t = img->tex;
+        
+        cout << " reading " << (*i)->tex.id << " " << (*i)->tex.count << endl;
 		
-			tex = (*i)->tex;
-		}
-		/* last texture */
-		glBindTexture(GL_TEXTURE_2D, tex.id);
-		glDrawArrays(GL_QUADS, start, tex.count * 4);
+		glBindTexture(GL_TEXTURE_2D, t.id);
+		glDrawArrays(GL_QUADS, start, t.count * 4);
+		start += t.count * 4;
+		
+		for (int count = 0; count < t.count; count++) {
+          cout << "\t skipping " << t.id << " count:  " << t.count << endl;
+          if (i != renderqueue.end()) i++;
+        }
+//         std::advance(i, t.count);
 	}
+	
+	cout << "-------------------------------------------  start " << endl;
+	
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 	
-	/* house cleaning? */
-
 	
 	SDL_GL_SwapBuffers();
 }

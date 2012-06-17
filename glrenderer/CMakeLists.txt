@@ -11,7 +11,7 @@ install(TARGETS glrenderer
 		LIBRARY DESTINATION ${COMPONENT_INSTALL_DIR}/renderer
 )
 
-include_directories(${FREETYPE_INCLUDE_DIRS})
+include_directories (${SDL_INCLUDE_DIR} ${FREETYPE_INCLUDE_DIRS})
 
 set(GLEW "GLEW")
 set(GLU "GLU")

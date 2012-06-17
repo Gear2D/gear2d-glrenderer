@@ -34,7 +34,8 @@ void gltext::rendertext() {
 	f = fonts[((string)font)];
 	if (f->Error()) { return; }
 	f->FaceSize(fontsz);
-	f->Render((((string)text)).c_str(), -1, FTPoint(x, y - f->Ascender()));
+	f->Render((((string)text)).c_str(), -1, FTPoint(x, y - f->Ascender(), z));
+// 	cout << "x: " << x << " y: " << y << " z: " << z << endl;
 // 	cout << "desc: " << f->Descender() << " asc: " << f->Ascender() << endl;
 	
 	

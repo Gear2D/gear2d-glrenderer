@@ -42,7 +42,7 @@ struct glimage {
 		
 		
 		bool operator<(const glimage & other) const {
-			return (tex.id < other.tex.id || (!(other.tex.id < tex.id) && tex.depth < other.tex.depth));
+			return (tex.id < other.tex.id);
 		}
 		
 		bool operator==(const glimage & other) const {
@@ -72,15 +72,16 @@ struct glimage {
 		, tex(tex)
 		{
 			tex.count++;
+// 			cout << parent->owner->name() << "[" << id << "]: " << tex.id << " c " <<  tex.count << " gol " << &tex << endl;
 		}
 		
-		virtual ~glimage() { tex.count--; }
+		virtual ~glimage() { tex.count--; cout << "\t adios, " << this << endl; }
 };
 
 /* compares two pointers of glimage */
 struct glimagecmp {
 	bool operator()(glimage * lhs, glimage * rhs) {
-		return (*lhs < * rhs);
+		return (*lhs < *rhs || (!(*rhs < *lhs) && lhs < rhs));
 	}
 };
 
